@@ -1,0 +1,14 @@
+# Virtual environments
+venv/
+server/venv/
+load_balancer/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
