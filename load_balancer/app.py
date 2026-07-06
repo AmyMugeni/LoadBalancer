@@ -1,23 +1,77 @@
 from flask import Flask, jsonify, request
 from consistent_hash import ConsistentHash
-import docker
+import importlib
+import os
 import random
 import string
+from urllib import error as url_error
+from urllib import request as url_request
 
-docker_client = docker.from_env()
+
 def random_hostname():
-    return "S" + "".join(random.choices(string.digits, k=4))
+    return "s" + "".join(random.choices(string.digits, k=4))
+
+
+def _load_docker_client():
+    try:
+        docker_module = importlib.import_module("docker")
+        return docker_module.from_env()
+    except Exception:
+        return None
+
+
+docker_client = _load_docker_client()
+SERVER_IMAGE = os.getenv("SERVER_IMAGE", "server:latest")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "5000"))
+DOCKER_NETWORK = os.getenv("DOCKER_NETWORK", "distributedloadbalancer_default")
+
+
+def create_server(server_id, hostname, create_container=True):
+    if create_container and docker_client is not None:
+        try:
+            docker_client.containers.run(
+                image=SERVER_IMAGE,
+                name=hostname,
+                detach=True,
+                environment={"SERVER_ID": str(server_id)},
+                network=DOCKER_NETWORK,
+            )
+        except Exception as exc:
+            raise RuntimeError(f"Failed to create container '{hostname}': {exc}") from exc
+
+    servers[server_id] = hostname
+    hash_ring.add_server(server_id)
+    print(f"Registered Server {server_id} ({hostname})")
+
+
+def next_server_id():
+    if not servers:
+        return 1
+    return max(servers) + 1
+
+
+def proxy_to_server(hostname):
+    target_url = f"http://{hostname}:{SERVER_PORT}/home"
+    try:
+        with url_request.urlopen(target_url, timeout=3) as response:
+            body = response.read().decode("utf-8")
+            return body, response.getcode(), response.headers.get_content_type()
+    except url_error.HTTPError as exc:
+        return exc.read().decode("utf-8"), exc.code, "application/json"
+    except Exception as exc:
+        return jsonify({
+            "message": f"Could not reach backend '{hostname}' at {target_url}: {exc}",
+            "status": "failure",
+        }), 502
 
 app = Flask(__name__)
 hash_ring = ConsistentHash()
 servers = {}
-for server_id in range(1, 4):
+INITIAL_REPLICAS = int(os.getenv("INITIAL_REPLICAS", "3"))
+AUTO_CREATE_CONTAINERS = os.getenv("AUTO_CREATE_CONTAINERS", "true").lower() == "true"
 
-    hostname = f"Server{server_id}"
-
-    servers[server_id] = hostname
-
-    hash_ring.add_server(server_id)
+for server_id in range(1, INITIAL_REPLICAS + 1):
+    create_server(server_id, f"server{server_id}", create_container=AUTO_CREATE_CONTAINERS)
 
 
 @app.route("/rep", methods=["GET"])
@@ -30,6 +84,28 @@ def get_replicas():
         },
         "status": "successful"
     }), 200
+
+
+@app.route("/home", methods=["GET"])
+def route_request():
+    if not servers:
+        return jsonify({"message": "No backend servers available", "status": "failure"}), 503
+
+    try:
+        request_id = int(request.args.get("request_id", random.randint(1, 1_000_000)))
+    except ValueError:
+        return jsonify({"message": "request_id must be an integer", "status": "failure"}), 400
+
+    server_id = hash_ring.get_server(request_id)
+    hostname = servers.get(server_id)
+    if hostname is None:
+        return jsonify({"message": "Server mapping is inconsistent", "status": "failure"}), 500
+
+    proxied = proxy_to_server(hostname)
+    if isinstance(proxied, tuple) and len(proxied) == 3:
+        body, status_code, content_type = proxied
+        return app.response_class(body, status=status_code, mimetype=content_type)
+    return proxied
 
 @app.route("/add", methods=["POST"])
 def add_servers():
@@ -47,10 +123,17 @@ def add_servers():
     while len(hostnames) < n:
         hostnames.append(random_hostname())
 
+    created = []
+    for hostname in hostnames:
+        server_id = next_server_id()
+        create_server(server_id, hostname, create_container=AUTO_CREATE_CONTAINERS)
+        created.append(hostname)
+
     return jsonify({
         "message": {
-            "N": len(servers) + n,
-            "replicas": list(servers.values()) + hostnames
+            "N": len(servers),
+            "replicas": list(servers.values()),
+            "created": created,
         },
         "status": "successful"
     }), 200

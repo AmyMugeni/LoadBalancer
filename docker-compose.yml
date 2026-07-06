@@ -1,0 +1,48 @@
+services:
+  load_balancer:
+    build:
+      context: ./load_balancer
+    container_name: load_balancer
+    environment:
+      AUTO_CREATE_CONTAINERS: "false"
+      INITIAL_REPLICAS: "3"
+      SERVER_PORT: "5000"
+    ports:
+      - "5000:5000"
+    depends_on:
+      - server1
+      - server2
+      - server3
+    networks:
+      - distributedloadbalancer_default
+
+  server1:
+    build:
+      context: ./server
+    container_name: server1
+    environment:
+      SERVER_ID: "1"
+    networks:
+      - distributedloadbalancer_default
+
+  server2:
+    build:
+      context: ./server
+    container_name: server2
+    environment:
+      SERVER_ID: "2"
+    networks:
+      - distributedloadbalancer_default
+
+  server3:
+    build:
+      context: ./server
+    container_name: server3
+    environment:
+      SERVER_ID: "3"
+    networks:
+      - distributedloadbalancer_default
+
+networks:
+  distributedloadbalancer_default:
+    name: distributedloadbalancer_default
