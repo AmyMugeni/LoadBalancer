@@ -10,9 +10,18 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - server1
-      - server2
-      - server3
+      server1:
+        condition: service_healthy
+      server2:
+        condition: service_healthy
+      server3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:5000/rep', timeout=2); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 8s
     networks:
       - distributedloadbalancer_default
 
@@ -22,6 +31,12 @@ services:
     container_name: server1
     environment:
       SERVER_ID: "1"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:5000/heartbeat', timeout=2); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     networks:
       - distributedloadbalancer_default
 
@@ -31,6 +46,12 @@ services:
     container_name: server2
     environment:
       SERVER_ID: "2"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:5000/heartbeat', timeout=2); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     networks:
       - distributedloadbalancer_default
 
@@ -40,6 +61,12 @@ services:
     container_name: server3
     environment:
       SERVER_ID: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:5000/heartbeat', timeout=2); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
     networks:
       - distributedloadbalancer_default
 

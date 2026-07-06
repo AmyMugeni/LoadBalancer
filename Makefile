@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: help build up down restart logs ps clean add rm
+.PHONY: help build up down restart logs ps clean add rm test-integration
 
 help:
 	@echo "Available targets:"
@@ -15,6 +15,7 @@ help:
 	@echo "  make clean              Stop stack and remove local images"
 	@echo "  make add N=<count>      Add replicas via load balancer API"
 	@echo "  make rm N=<count>       Remove replicas via load balancer API"
+	@echo "  make test-integration   Run end-to-end endpoint checks"
 
 build:
 	$(COMPOSE) build
@@ -43,3 +44,6 @@ add:
 rm:
 	@if [ -z "$(N)" ]; then echo "Usage: make rm N=<count>"; exit 1; fi
 	curl -sS -X DELETE http://localhost:5000/rm -H "Content-Type: application/json" -d '{"n": '"$(N)"', "hostnames": []}'
+
+test-integration:
+	bash ./scripts/integration_test.sh
