@@ -1,20 +1,20 @@
+import hashlib
+
+
 class ConsistentHash:
 
     def __init__(self):
-        self.num_slots = 512
-        self.virtual_servers = 9
+        self.num_slots = 4096
+        self.virtual_servers = 100
         self.ring = [None] * self.num_slots
 
     def request_hash(self, request_id):
-        return (request_id ** 2 + 2 * request_id + 17) % self.num_slots
+        key = str(request_id).encode("utf-8")
+        return int(hashlib.sha256(key).hexdigest(), 16) % self.num_slots
 
     def virtual_server_hash(self, server_id, virtual_id):
-        return (
-            server_id ** 2
-            + virtual_id ** 2
-            + 2 * virtual_id
-            + 25
-        ) % self.num_slots
+        key = f"{server_id}:{virtual_id}".encode("utf-8")
+        return int(hashlib.sha256(key).hexdigest(), 16) % self.num_slots
     def add_server(self, server_id):
         for virtual_id in range(self.virtual_servers):
             #is the slot empty? if not, we need to find the next available slot
@@ -27,13 +27,18 @@ class ConsistentHash:
             print(f"Server {server_id} Virtual {virtual_id} placed at slot {slot}")
     
     def get_server(self, request_id):
-        #compute request harsh
+        # Compute request hash and walk clockwise until a server is found.
         slot = self.request_hash(request_id)
+
+        if all(entry is None for entry in self.ring):
+            raise RuntimeError("No servers available in hash ring")
+
         while self.ring[slot] is None:
-            #move clockwise around the ring until we find a server
+            # Move clockwise around the ring until we find a populated slot.
             slot = (slot + 1) % self.num_slots
-            server_id, virtual_id = self.ring[slot]
-            print(f"Request {request_id} " f"mapped to Server {server_id} "f"(Virtual {virtual_id})")
+
+        server_id, virtual_id = self.ring[slot]
+        print(f"Request {request_id} " f"mapped to Server {server_id} " f"(Virtual {virtual_id})")
         return self.ring[slot][0]  # return the server_id
     
     def remove_server(self, server_id):
@@ -50,9 +55,6 @@ class ConsistentHash:
                 self.ring[slot] = None
     
     
-    print("\nOccupied Slots:\n")
-            
-
 if __name__ == "__main__":
     ch = ConsistentHash()
 

@@ -4,9 +4,13 @@ services:
       context: ./load_balancer
     container_name: load_balancer
     environment:
-      AUTO_CREATE_CONTAINERS: "false"
+      AUTO_CREATE_CONTAINERS: "true"
       INITIAL_REPLICAS: "3"
+      SERVER_IMAGE: "distributedloadbalancer-server:latest"
       SERVER_PORT: "5000"
+      DOCKER_NETWORK: "distributedloadbalancer_default"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "5000:5000"
     depends_on:
@@ -28,6 +32,7 @@ services:
   server1:
     build:
       context: ./server
+    image: distributedloadbalancer-server:latest
     container_name: server1
     environment:
       SERVER_ID: "1"
@@ -43,6 +48,7 @@ services:
   server2:
     build:
       context: ./server
+    image: distributedloadbalancer-server:latest
     container_name: server2
     environment:
       SERVER_ID: "2"
@@ -58,6 +64,7 @@ services:
   server3:
     build:
       context: ./server
+    image: distributedloadbalancer-server:latest
     container_name: server3
     environment:
       SERVER_ID: "3"
