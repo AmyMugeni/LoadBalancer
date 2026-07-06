@@ -77,8 +77,25 @@ def next_server_id():
     return max(servers) + 1
 
 
-def proxy_to_server(hostname):
-    target_url = f"http://{hostname}:{SERVER_PORT}/home"
+def select_backend_server(request_id_raw):
+    try:
+        request_id = int(request_id_raw) if request_id_raw is not None else random.randint(1, 1_000_000)
+    except ValueError:
+        return None, "request_id must be an integer"
+
+    server_id = hash_ring.get_server(request_id)
+    hostname = servers.get(server_id)
+    if hostname is None:
+        return None, "Server mapping is inconsistent"
+    return hostname, None
+
+
+def proxy_to_server(hostname, path):
+    clean_path = path.lstrip("/")
+    query = request.query_string.decode("utf-8")
+    target_url = f"http://{hostname}:{SERVER_PORT}/{clean_path}"
+    if query:
+        target_url = f"{target_url}?{query}"
     try:
         with url_request.urlopen(target_url, timeout=3) as response:
             body = response.read().decode("utf-8")
@@ -118,17 +135,27 @@ def route_request():
     if not servers:
         return jsonify({"message": "No backend servers available", "status": "failure"}), 503
 
-    try:
-        request_id = int(request.args.get("request_id", random.randint(1, 1_000_000)))
-    except ValueError:
-        return jsonify({"message": "request_id must be an integer", "status": "failure"}), 400
+    hostname, err = select_backend_server(request.args.get("request_id"))
+    if err is not None:
+        return jsonify({"message": err, "status": "failure"}), 400 if "request_id" in err else 500
 
-    server_id = hash_ring.get_server(request_id)
-    hostname = servers.get(server_id)
-    if hostname is None:
-        return jsonify({"message": "Server mapping is inconsistent", "status": "failure"}), 500
+    proxied = proxy_to_server(hostname, "home")
+    if isinstance(proxied, tuple) and len(proxied) == 3:
+        body, status_code, content_type = proxied
+        return app.response_class(body, status=status_code, mimetype=content_type)
+    return proxied
 
-    proxied = proxy_to_server(hostname)
+
+@app.route("/<path:subpath>", methods=["GET"])
+def route_any_path(subpath):
+    if not servers:
+        return jsonify({"message": "No backend servers available", "status": "failure"}), 503
+
+    hostname, err = select_backend_server(request.args.get("request_id"))
+    if err is not None:
+        return jsonify({"message": err, "status": "failure"}), 400 if "request_id" in err else 500
+
+    proxied = proxy_to_server(hostname, subpath)
     if isinstance(proxied, tuple) and len(proxied) == 3:
         body, status_code, content_type = proxied
         return app.response_class(body, status=status_code, mimetype=content_type)
