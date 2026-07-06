@@ -44,6 +44,33 @@ def create_server(server_id, hostname, create_container=True):
     print(f"Registered Server {server_id} ({hostname})")
 
 
+def get_server_id_by_hostname(hostname):
+    for server_id, current_hostname in servers.items():
+        if current_hostname == hostname:
+            return server_id
+    return None
+
+
+def remove_server(server_id, remove_container=True):
+    hostname = servers.get(server_id)
+    if hostname is None:
+        return None
+
+    hash_ring.remove_server(server_id)
+    del servers[server_id]
+
+    if remove_container and docker_client is not None:
+        try:
+            container = docker_client.containers.get(hostname)
+            container.remove(force=True)
+        except Exception:
+            # Best effort cleanup: server is already removed from LB state.
+            pass
+
+    print(f"Removed Server {server_id} ({hostname})")
+    return hostname
+
+
 def next_server_id():
     if not servers:
         return 1
@@ -137,5 +164,76 @@ def add_servers():
         },
         "status": "successful"
     }), 200
+
+
+@app.route("/rm", methods=["DELETE"])
+def remove_servers():
+    data = request.get_json(silent=True) or {}
+
+    n = data.get("n")
+    hostnames = data.get("hostnames", [])
+
+    if not isinstance(n, int) or n <= 0:
+        return jsonify({
+            "message": "<Error> 'n' must be a positive integer",
+            "status": "failure",
+        }), 400
+
+    if not isinstance(hostnames, list):
+        return jsonify({
+            "message": "<Error> 'hostnames' must be a list",
+            "status": "failure",
+        }), 400
+
+    if len(hostnames) > n:
+        return jsonify({
+            "message": "<Error> Length of hostname list is more than instances requested for removal",
+            "status": "failure",
+        }), 400
+
+    if n > len(servers):
+        return jsonify({
+            "message": "<Error> Requested removals exceed number of removable instances",
+            "status": "failure",
+        }), 400
+
+    if len(hostnames) != len(set(hostnames)):
+        return jsonify({
+            "message": "<Error> Duplicate hostnames in payload",
+            "status": "failure",
+        }), 400
+
+    unknown_hostnames = [hostname for hostname in hostnames if hostname not in set(servers.values())]
+    if unknown_hostnames:
+        return jsonify({
+            "message": f"<Error> Unknown hostnames requested for removal: {unknown_hostnames}",
+            "status": "failure",
+        }), 400
+
+    selected_hostnames = list(hostnames)
+    remaining = n - len(selected_hostnames)
+    if remaining > 0:
+        candidates = [hostname for hostname in servers.values() if hostname not in selected_hostnames]
+        selected_hostnames.extend(random.sample(candidates, remaining))
+
+    removed = []
+    for hostname in selected_hostnames:
+        server_id = get_server_id_by_hostname(hostname)
+        if server_id is None:
+            continue
+        removed_hostname = remove_server(server_id, remove_container=True)
+        if removed_hostname is not None:
+            removed.append(removed_hostname)
+
+    return jsonify({
+        "message": {
+            "N": len(servers),
+            "replicas": list(servers.values()),
+            "removed": removed,
+        },
+        "status": "successful",
+    }), 200
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
