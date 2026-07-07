@@ -1,20 +1,20 @@
-import hashlib
-
-
 class ConsistentHash:
 
     def __init__(self):
-        self.num_slots = 4096
-        self.virtual_servers = 100
+        self.num_slots = 512
+        self.virtual_servers = 9
         self.ring = [None] * self.num_slots
 
     def request_hash(self, request_id):
-        key = str(request_id).encode("utf-8")
-        return int(hashlib.sha256(key).hexdigest(), 16) % self.num_slots
+        return (request_id * request_id + 2 * request_id + 17) % self.num_slots
 
     def virtual_server_hash(self, server_id, virtual_id):
-        key = f"{server_id}:{virtual_id}".encode("utf-8")
-        return int(hashlib.sha256(key).hexdigest(), 16) % self.num_slots
+        return (
+            server_id * server_id
+            + virtual_id * virtual_id
+            + 2 * virtual_id
+            + 25
+        ) % self.num_slots
     def add_server(self, server_id):
         for virtual_id in range(self.virtual_servers):
             #is the slot empty? if not, we need to find the next available slot
