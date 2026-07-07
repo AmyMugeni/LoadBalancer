@@ -267,6 +267,33 @@ Run it with:
 make test-integration
 ```
 
+### TASK ANALYSIS 3
+
+## Required Test: Endpoints + Fast Failover Recovery
+
+If you are looking for the proof that all endpoints are tested and that the load balancer replaces a failed server quickly, run:
+
+```bash
+python scripts/endpoint_and_failover_test.py
+```
+
+This single script validates:
+
+- `GET /rep` -> 200
+- `GET /home` -> 200
+- `GET /<unknown-path>` -> 404
+- `POST /add` -> 200
+- `DELETE /rm` -> 200
+- invalid `DELETE /rm` payload -> 400
+
+It also simulates server failure (`docker rm -f server1`) and confirms automatic recovery by checking that:
+
+- a replacement backend is spawned (for example `s4771`)
+- requests recover from failure to success (`EXC -> 502 -> 200`)
+- recovery time is short (observed about `8.566s`)
+
+The detailed breakdown is in the section below.
+
 ## Endpoint And Failover Validation
 
 The script `scripts/endpoint_and_failover_test.py` validates all primary load balancer endpoints and confirms automatic recovery when a backend server fails.
@@ -310,6 +337,8 @@ Run command:
 ```bash
 python scripts/endpoint_and_failover_test.py
 ```
+
+### TASK ANALYSIS 4:1 Using SHA for hashing
 
 ## Async Load Test (10,000 Requests, N=3)
 
@@ -401,6 +430,55 @@ Takeaway:
 
 - The tuning preserved reliability while significantly improving both performance and fairness of request distribution.
 
+### TASK ANALYSIS 1
+
+### Quadratic Formula Rerun (N=3, 10,000 Async Requests)
+
+Using the quadratic formulas for hashing:
+
+- Request mapping: H(i) = i^2 + 2i + 17 (mod 512)
+- Virtual server mapping: Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
+
+we obtained the following results by running these commands:
+
+```bash
+make up
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/rep', timeout=5).read().decode())"
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/async_load_test.py
+```
+
+Observed benchmark output:
+
+- Successful requests: 10,000
+- Failed requests: 0
+- Total duration: 43.564s
+- Effective throughput: 229.54 req/s
+- Latency (successful requests):
+  - Mean: 68.44 ms
+  - P50: 64.60 ms
+  - P95: 91.39 ms
+  - P99: 129.57 ms
+
+Request count by server instance:
+
+- Server 1: 8,435
+- Server 2: 470
+- Server 3: 1,095
+
+Bar chart (quadratic formulas):
+
+```text
+Server 1 | ######################################## 8435
+Server 2 | ##                                       470
+Server 3 | #####                                    1095
+```
+
+Observation:
+
+- The run is reliable (0 failures) and throughput is strong, but request distribution is skewed toward Server 1.
+
+### TASK ANALYSIS 4.2
+
 ## Rerun: N=2 to N=6 (10,000 Requests Each)
 
 After implementing scalability fixes, the benchmark was rerun for each replica count from `N=2` to `N=6`.
@@ -441,6 +519,57 @@ xychart-beta
 - `N=2`, `N=4`, and `N=6` were near fully successful and sustained high throughput (~156-160 req/s).
 - `N=3` and `N=5` still showed intermittent client-side failures, which indicates scaling behavior is much better but not yet fully stable at every intermediate replica count.
 - The implementation now demonstrates practical horizontal scaling, but there is still room to improve consistency across all `N` values.
+
+### TASK ANALYSIS 2
+
+### Quadratic Formula Sweep (N=2 to N=6)
+
+Using the quadratic formulas:
+
+- H(i) = i^2 + 2i + 17 (mod 512)
+- Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
+
+the following command was run:
+
+```bash
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/sweep_async_load.py
+```
+
+Observed results:
+
+| N   | Successful | Failed | Avg Load / Server | Throughput (req/s) |
+| --- | ---------: | -----: | ----------------: | -----------------: |
+| 2   |      10000 |      0 |           5000.00 |             247.71 |
+| 3   |       5435 |   4565 |           1811.67 |             190.59 |
+| 4   |          5 |   9995 |              1.25 |               0.43 |
+| 5   |       4593 |   5407 |            918.60 |             171.93 |
+| 6   |      10000 |      0 |           1666.67 |             212.57 |
+
+Line chart (quadratic formula average load per server):
+
+```mermaid
+xychart-beta
+  title "Average Successful Load per Server with Quadratic Hashing"
+  x-axis "N" [2, 3, 4, 5, 6]
+  y-axis "Avg load/server" 0 --> 5200
+  line [5000, 1811.67, 1.25, 918.6, 1666.67]
+```
+
+Comparison with previous N=2..6 run:
+
+| N   | Previous Avg Load / Server | Quadratic Avg Load / Server |
+| --- | -------------------------: | --------------------------: |
+| 2   |                    5000.00 |                     5000.00 |
+| 3   |                    1807.00 |                     1811.67 |
+| 4   |                    2500.00 |                        1.25 |
+| 5   |                    1155.20 |                      918.60 |
+| 6   |                    1645.67 |                     1666.67 |
+
+Scalability observation for quadratic hashing:
+
+- Reliability is inconsistent across replica counts, with severe collapse at N=4 and partial failures at N=3 and N=5.
+- Throughput is high at N=2 and N=6, but not stable across intermediate N values.
+- The implementation scales in some configurations, but does not yet provide robust, monotonic scaling behavior under this quadratic mapping.
 
 ## Troubleshooting
 
