@@ -72,12 +72,11 @@ async def run_benchmark():
     return results
 
 
-def percentile(values, pct):
-    if not values:
+def percentile_from_sorted(ordered_values, pct):
+    if not ordered_values:
         return 0.0
-    ordered = sorted(values)
-    idx = int((pct / 100.0) * (len(ordered) - 1))
-    return ordered[idx]
+    idx = int((pct / 100.0) * (len(ordered_values) - 1))
+    return ordered_values[idx]
 
 
 async def main():
@@ -91,6 +90,7 @@ async def main():
     counts = Counter(r["server"] for r in success if r["server"] is not None)
     status_counts = Counter(str(r["status"]) for r in results)
     latencies = [r["latency_ms"] for r in success]
+    ordered_latencies = sorted(latencies)
 
     summary = {
         "total_requests": TOTAL_REQUESTS,
@@ -101,9 +101,9 @@ async def main():
         "throughput_rps": round((len(success) / elapsed) if elapsed > 0 else 0.0, 2),
         "latency_ms": {
             "mean": round((sum(latencies) / len(latencies)) if latencies else 0.0, 2),
-            "p50": round(percentile(latencies, 50), 2),
-            "p95": round(percentile(latencies, 95), 2),
-            "p99": round(percentile(latencies, 99), 2),
+            "p50": round(percentile_from_sorted(ordered_latencies, 50), 2),
+            "p95": round(percentile_from_sorted(ordered_latencies, 95), 2),
+            "p99": round(percentile_from_sorted(ordered_latencies, 99), 2),
         },
         "status_counts": dict(sorted(status_counts.items())),
         "server_counts": dict(sorted(counts.items())),
