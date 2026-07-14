@@ -18,10 +18,11 @@ help:
 	@echo "  make test-integration   Run end-to-end endpoint checks"
 
 build:
-	$(COMPOSE) build
+	$(COMPOSE) build server1 load_balancer
 
 up:
-	$(COMPOSE) up --build -d
+	$(COMPOSE) build server1 load_balancer
+	$(COMPOSE) up -d --no-build
 
 down:
 	$(COMPOSE) down
