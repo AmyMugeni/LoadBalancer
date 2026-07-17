@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520">
+  <rect width="900" height="520" fill="#ffffff"/>
+  <text x="450" y="42" text-anchor="middle" font-size="26" font-family="Arial" fill="#0b2a6f">Request Count by Server (Quadratic, N=3)</text>
+  <line x1="100" y1="450" x2="820" y2="450" stroke="#1f2937" stroke-width="2"/>
+  <line x1="100" y1="80" x2="100" y2="450" stroke="#1f2937" stroke-width="2"/>
+
+  <rect x="180" y="103" width="120" height="347" fill="#163a8a"/>
+  <rect x="390" y="431" width="120" height="19" fill="#163a8a"/>
+  <rect x="600" y="405" width="120" height="45" fill="#163a8a"/>
+
+  <text x="240" y="470" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">Server 1</text>
+  <text x="450" y="470" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">Server 2</text>
+  <text x="660" y="470" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">Server 3</text>
+
+  <text x="240" y="93" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">8435</text>
+  <text x="450" y="421" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">470</text>
+  <text x="660" y="395" text-anchor="middle" font-size="16" font-family="Arial" fill="#111111">1095</text>
+
+  <text x="55" y="455" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">0</text>
+  <text x="55" y="265" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">4500</text>
+  <text x="55" y="85" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">9000</text>
+</svg>

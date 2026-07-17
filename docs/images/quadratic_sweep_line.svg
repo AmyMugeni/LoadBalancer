@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="540" viewBox="0 0 920 540">
+  <rect width="920" height="540" fill="#ffffff"/>
+  <text x="460" y="42" text-anchor="middle" font-size="24" font-family="Arial" fill="#0b2a6f">Average Successful Load per Server with Quadratic Hashing</text>
+  <line x1="100" y1="470" x2="840" y2="470" stroke="#1f2937" stroke-width="2"/>
+  <line x1="100" y1="80" x2="100" y2="470" stroke="#1f2937" stroke-width="2"/>
+
+  <polyline fill="none" stroke="#0f3f99" stroke-width="4" points="160,95 320,334 480,470 640,403 800,345"/>
+
+  <circle cx="160" cy="95" r="6" fill="#0f3f99"/>
+  <circle cx="320" cy="334" r="6" fill="#0f3f99"/>
+  <circle cx="480" cy="470" r="6" fill="#0f3f99"/>
+  <circle cx="640" cy="403" r="6" fill="#0f3f99"/>
+  <circle cx="800" cy="345" r="6" fill="#0f3f99"/>
+
+  <text x="160" y="492" text-anchor="middle" font-size="15" font-family="Arial" fill="#111111">2</text>
+  <text x="320" y="492" text-anchor="middle" font-size="15" font-family="Arial" fill="#111111">3</text>
+  <text x="480" y="492" text-anchor="middle" font-size="15" font-family="Arial" fill="#111111">4</text>
+  <text x="640" y="492" text-anchor="middle" font-size="15" font-family="Arial" fill="#111111">5</text>
+  <text x="800" y="492" text-anchor="middle" font-size="15" font-family="Arial" fill="#111111">6</text>
+
+  <text x="75" y="475" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">0</text>
+  <text x="75" y="95" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">5200</text>
+
+  <text x="160" y="83" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">5000</text>
+  <text x="320" y="322" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">1811.67</text>
+  <text x="480" y="458" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">1.25</text>
+  <text x="640" y="391" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">918.6</text>
+  <text x="800" y="333" text-anchor="middle" font-size="14" font-family="Arial" fill="#111111">1666.67</text>
+</svg>
