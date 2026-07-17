@@ -301,10 +301,12 @@ From successful responses only:
 
 Bar chart (successful handled requests):
 
-```text
-Server 1 | ######################################   3393
-Server 2 | ######################################## 3609
-Server 3 | #################################        2998
+```mermaid
+xychart-beta
+  title "Request Count by Server (SHA-256, N=3)"
+  x-axis "Server" ["Server 1", "Server 2", "Server 3"]
+  y-axis "Requests" 0 --> 4000
+  bar [3393, 3609, 2998]
 ```
 
 ### Observations
@@ -355,10 +357,12 @@ Request count by server instance:
 
 Bar chart (quadratic formulas):
 
-```text
-Server 1 | ######################################## 8435
-Server 2 | ##                                       470
-Server 3 | #####                                    1095
+```mermaid
+xychart-beta
+  title "Request Count by Server (Quadratic, N=3)"
+  x-axis "Server" ["Server 1", "Server 2", "Server 3"]
+  y-axis "Requests" 0 --> 9000
+  bar [8435, 470, 1095]
 ```
 
 Observation:
@@ -458,7 +462,6 @@ Scalability observation for quadratic hashing:
 - Reliability is inconsistent across replica counts, with severe collapse at N=4 and partial failures at N=3 and N=5.
 - Throughput is high at N=2 and N=6, but not stable across intermediate N values.
 - The implementation scales in some configurations, but does not yet provide robust, monotonic scaling behavior under this quadratic mapping.
-
 
 ### TASK ANALYSIS 3
 
