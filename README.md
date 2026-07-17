@@ -302,7 +302,7 @@ From successful responses only:
 Bar chart (successful handled requests):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#FFFFFF', 'primaryColor': '#0b2a6f', 'primaryBorderColor': '#081f52', 'primaryTextColor': '#111111', 'lineColor': '#000000', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#FFFFFF', 'primaryColor': '#000000', 'primaryBorderColor': '#081f52', 'primaryTextColor': '#111111', 'lineColor': '#000000', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (SHA-256, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
