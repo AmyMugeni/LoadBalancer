@@ -267,6 +267,199 @@ Run it with:
 make test-integration
 ```
 
+### TASK ANALYSIS 4:1 Using SHA for hashing
+
+## Async Load Test (10,000 Requests, N=3)
+
+### Test Setup
+
+- Endpoint: `/home?request_id=<id>`
+- Total requests: `10,000`
+- Concurrency: `300` asynchronous workers
+- Active backends: `server1`, `server2`, `server3`
+
+### Summary Metrics
+
+- Successful requests: `10,000`
+- Failed requests: `0`
+- Status counts: `200 -> 10,000`
+- Total duration: `47.80s`
+- Effective throughput: `209.21 req/s`
+- Successful request latency:
+  - Mean: `76.00 ms`
+  - P50: `69.57 ms`
+  - P95: `120.92 ms`
+  - P99: `163.97 ms`
+
+### Request Count By Server Instance
+
+From successful responses only:
+
+- Server 1: `3,393`
+- Server 2: `3,609`
+- Server 3: `2,998`
+
+Bar chart (successful handled requests):
+
+```text
+Server 1 | ######################################   3393
+Server 2 | ######################################## 3609
+Server 3 | #################################        2998
+```
+
+### Observations
+
+- Distribution is now much more balanced across the three servers than the earlier skewed runs.
+- Reliability improved to 100% success for this N=3 test.
+- Throughput is stable and significantly better than the earlier failing configuration.
+- These results are consistent with the SHA-based ring changes (larger ring and more virtual nodes).
+
+Takeaway:
+
+- With SHA-256 based hashing, N=3 delivers full reliability and a balanced request split.
+
+### TASK ANALYSIS 1
+
+### Quadratic Formula Rerun (N=3, 10,000 Async Requests)
+
+Using the quadratic formulas for hashing:
+
+- Request mapping: H(i) = i^2 + 2i + 17 (mod 512)
+- Virtual server mapping: Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
+
+we obtained the following results by running these commands:
+
+```bash
+make up
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/rep', timeout=5).read().decode())"
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/async_load_test.py
+```
+
+Observed benchmark output:
+
+- Successful requests: 10,000
+- Failed requests: 0
+- Total duration: 43.564s
+- Effective throughput: 229.54 req/s
+- Latency (successful requests):
+  - Mean: 68.44 ms
+  - P50: 64.60 ms
+  - P95: 91.39 ms
+  - P99: 129.57 ms
+
+Request count by server instance:
+
+- Server 1: 8,435
+- Server 2: 470
+- Server 3: 1,095
+
+Bar chart (quadratic formulas):
+
+```text
+Server 1 | ######################################## 8435
+Server 2 | ##                                       470
+Server 3 | #####                                    1095
+```
+
+Observation:
+
+- The run is reliable (0 failures) and throughput is strong, but request distribution is skewed toward Server 1.
+
+### TASK ANALYSIS 4.2
+
+## Rerun: N=2 to N=6 (10,000 Requests Each)
+
+Using SHA-256 hashing and isolated runs (fresh stack per N), the benchmark was rerun for each replica count from `N=2` to `N=6`.
+
+### Rerun Summary
+
+| N   | Successful | Failed | Avg Load / Server | Throughput (req/s) |
+| --- | ---------: | -----: | ----------------: | -----------------: |
+| 2   |      10000 |      0 |           5000.00 |             200.82 |
+| 3   |      10000 |      0 |           3333.33 |             209.21 |
+| 4   |      10000 |      0 |           2500.00 |             208.47 |
+| 5   |      10000 |      0 |           2000.00 |             195.37 |
+| 6   |      10000 |      0 |           1666.67 |             217.61 |
+
+### Side-By-Side With Previous Baseline
+
+| N   | Baseline Success | Rerun Success | Baseline Throughput | Rerun Throughput |
+| --- | ---------------: | ------------: | ------------------: | ---------------: |
+| 2   |              940 |         10000 |               25.38 |           200.82 |
+| 3   |              468 |         10000 |                8.60 |           209.21 |
+| 4   |                1 |         10000 |                0.07 |           208.47 |
+| 5   |              781 |         10000 |                4.39 |           195.37 |
+| 6   |              783 |         10000 |                3.61 |           217.61 |
+
+### Line Chart (Rerun Average Load Per Server)
+
+```mermaid
+xychart-beta
+  title "Average Successful Load per Server (10,000 requests per run)"
+  x-axis "N" [2, 3, 4, 5, 6]
+  y-axis "Avg load/server" 0 --> 5200
+  line [5000, 3333.33, 2500, 2000, 1666.67]
+```
+
+### Rerun Observations
+
+- Reliability is consistent across all tested replica counts (`N=2..6`) with 100% successful requests.
+- Throughput remains in a stable band (~195-218 req/s) as replica count changes.
+- Average load per server follows the expected inverse pattern with increasing `N`, indicating proper distribution.
+- The SHA-256 configuration demonstrates robust horizontal scalability in this workload.
+
+### TASK ANALYSIS 2
+
+### Quadratic Formula Sweep (N=2 to N=6)
+
+Using the quadratic formulas:
+
+- H(i) = i^2 + 2i + 17 (mod 512)
+- Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
+
+the following command was run:
+
+```bash
+//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/sweep_async_load.py
+```
+
+Observed results:
+
+| N   | Successful | Failed | Avg Load / Server | Throughput (req/s) |
+| --- | ---------: | -----: | ----------------: | -----------------: |
+| 2   |      10000 |      0 |           5000.00 |             247.71 |
+| 3   |       5435 |   4565 |           1811.67 |             190.59 |
+| 4   |          5 |   9995 |              1.25 |               0.43 |
+| 5   |       4593 |   5407 |            918.60 |             171.93 |
+| 6   |      10000 |      0 |           1666.67 |             212.57 |
+
+Line chart (quadratic formula average load per server):
+
+```mermaid
+xychart-beta
+  title "Average Successful Load per Server with Quadratic Hashing"
+  x-axis "N" [2, 3, 4, 5, 6]
+  y-axis "Avg load/server" 0 --> 5200
+  line [5000, 1811.67, 1.25, 918.6, 1666.67]
+```
+
+Comparison with previous N=2..6 run:
+
+| N   | SHA-256 Avg Load / Server | Quadratic Avg Load / Server |
+| --- | ------------------------: | --------------------------: |
+| 2   |                   5000.00 |                     5000.00 |
+| 3   |                   3333.33 |                     1811.67 |
+| 4   |                   2500.00 |                        1.25 |
+| 5   |                   2000.00 |                      918.60 |
+| 6   |                   1666.67 |                     1666.67 |
+
+Scalability observation for quadratic hashing:
+
+- Reliability is inconsistent across replica counts, with severe collapse at N=4 and partial failures at N=3 and N=5.
+- Throughput is high at N=2 and N=6, but not stable across intermediate N values.
+- The implementation scales in some configurations, but does not yet provide robust, monotonic scaling behavior under this quadratic mapping.
+
+
 ### TASK ANALYSIS 3
 
 ## Required Test: Endpoints + Fast Failover Recovery
@@ -337,239 +530,6 @@ Run command:
 ```bash
 python scripts/endpoint_and_failover_test.py
 ```
-
-### TASK ANALYSIS 4:1 Using SHA for hashing
-
-## Async Load Test (10,000 Requests, N=3)
-
-### Test Setup
-
-- Endpoint: `/home?request_id=<id>`
-- Total requests: `10,000`
-- Concurrency: `300` asynchronous workers
-- Active backends: `server1`, `server2`, `server3`
-
-### Summary Metrics
-
-- Successful requests: `1,331`
-- Failed requests: `8,669`
-- Status counts: `200 -> 1,331`, `500 -> 8,669`
-- Total duration: `42.82s`
-- Effective throughput: `31.08 req/s`
-- Successful request latency:
-  - Mean: `39.35 ms`
-  - P50: `28.78 ms`
-  - P95: `59.67 ms`
-  - P99: `111.08 ms`
-
-### Request Count By Server Instance
-
-From successful responses only:
-
-- Server 1: `470`
-- Server 2: `470`
-- Server 3: `391`
-
-Bar chart (successful handled requests):
-
-```text
-Server 1 | ############################################### 470
-Server 2 | ############################################### 470
-Server 3 | #######################################         391
-```
-
-### Observations
-
-- Distribution across successful requests is relatively close for Server 1 and Server 2, with Server 3 lower.
-- Overall system performance is currently constrained by reliability, not latency: a large portion of requests returned HTTP 500.
-- The high error rate is consistent with a hash-ring lookup bug in `load_balancer/consistent_hash.py` (`get_server`), where slot dereference occurs during empty-slot probing.
-- Once that issue is fixed, rerunning the same benchmark is recommended before comparing load-balancing quality or generating final visualizations.
-
-### Post-Tuning Rerun (N=3, 10,000 Async Requests)
-
-After tuning the hash ring for better distribution (larger ring, more virtual nodes, and stronger hashing), the same test was rerun.
-
-Updated metrics:
-
-- Successful requests: `10,000`
-- Failed requests: `0`
-- Status counts: `200 -> 10,000`
-- Total duration: `36.91s`
-- Effective throughput: `270.93 req/s`
-- Successful request latency:
-  - Mean: `58.13 ms`
-  - P50: `56.30 ms`
-  - P95: `73.83 ms`
-  - P99: `89.30 ms`
-
-Request count by server:
-
-- Server 1: `4,079`
-- Server 2: `3,029`
-- Server 3: `2,892`
-
-Bar chart (post-tuning):
-
-```text
-Server 1 | ######################################## 4079
-Server 2 | ##############################           3029
-Server 3 | #############################            2892
-```
-
-Before vs after (same N=3 test):
-
-| Metric              |     Before Tuning |       After Tuning |
-| ------------------- | ----------------: | -----------------: |
-| Successful requests |            10,000 |             10,000 |
-| Failed requests     |                 0 |                  0 |
-| Throughput (req/s)  |            147.78 |             270.93 |
-| Mean latency (ms)   |            106.23 |              58.13 |
-| Server split        | 8435 / 470 / 1095 | 4079 / 3029 / 2892 |
-
-Takeaway:
-
-- The tuning preserved reliability while significantly improving both performance and fairness of request distribution.
-
-### TASK ANALYSIS 1
-
-### Quadratic Formula Rerun (N=3, 10,000 Async Requests)
-
-Using the quadratic formulas for hashing:
-
-- Request mapping: H(i) = i^2 + 2i + 17 (mod 512)
-- Virtual server mapping: Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
-
-we obtained the following results by running these commands:
-
-```bash
-make up
-//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/rep', timeout=5).read().decode())"
-//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/async_load_test.py
-```
-
-Observed benchmark output:
-
-- Successful requests: 10,000
-- Failed requests: 0
-- Total duration: 43.564s
-- Effective throughput: 229.54 req/s
-- Latency (successful requests):
-  - Mean: 68.44 ms
-  - P50: 64.60 ms
-  - P95: 91.39 ms
-  - P99: 129.57 ms
-
-Request count by server instance:
-
-- Server 1: 8,435
-- Server 2: 470
-- Server 3: 1,095
-
-Bar chart (quadratic formulas):
-
-```text
-Server 1 | ######################################## 8435
-Server 2 | ##                                       470
-Server 3 | #####                                    1095
-```
-
-Observation:
-
-- The run is reliable (0 failures) and throughput is strong, but request distribution is skewed toward Server 1.
-
-### TASK ANALYSIS 4.2
-
-## Rerun: N=2 to N=6 (10,000 Requests Each)
-
-After implementing scalability fixes, the benchmark was rerun for each replica count from `N=2` to `N=6`.
-
-### Rerun Summary
-
-| N   | Successful | Failed | Avg Load / Server | Throughput (req/s) |
-| --- | ---------: | -----: | ----------------: | -----------------: |
-| 2   |      10000 |      0 |           5000.00 |             156.08 |
-| 3   |       5421 |   4579 |           1807.00 |             120.62 |
-| 4   |      10000 |      0 |           2500.00 |             157.59 |
-| 5   |       5776 |   4224 |           1155.20 |             127.46 |
-| 6   |       9874 |    126 |           1645.67 |             159.56 |
-
-### Side-By-Side With Previous Baseline
-
-| N   | Baseline Success | Rerun Success | Baseline Throughput | Rerun Throughput |
-| --- | ---------------: | ------------: | ------------------: | ---------------: |
-| 2   |              940 |         10000 |               25.38 |           156.08 |
-| 3   |              468 |          5421 |                8.60 |           120.62 |
-| 4   |                1 |         10000 |                0.07 |           157.59 |
-| 5   |              781 |          5776 |                4.39 |           127.46 |
-| 6   |              783 |          9874 |                3.61 |           159.56 |
-
-### Line Chart (Rerun Average Load Per Server)
-
-```mermaid
-xychart-beta
-  title "Average Successful Load per Server (10,000 requests per run)"
-  x-axis "N" [2, 3, 4, 5, 6]
-  y-axis "Avg load/server" 0 --> 5200
-  line [5000, 1807, 2500, 1155.2, 1645.67]
-```
-
-### Rerun Observations
-
-- Overall reliability and throughput improved significantly versus the baseline at every `N`.
-- `N=2`, `N=4`, and `N=6` were near fully successful and sustained high throughput (~156-160 req/s).
-- `N=3` and `N=5` still showed intermittent client-side failures, which indicates scaling behavior is much better but not yet fully stable at every intermediate replica count.
-- The implementation now demonstrates practical horizontal scaling, but there is still room to improve consistency across all `N` values.
-
-### TASK ANALYSIS 2
-
-### Quadratic Formula Sweep (N=2 to N=6)
-
-Using the quadratic formulas:
-
-- H(i) = i^2 + 2i + 17 (mod 512)
-- Phi(i, j) = i^2 + j^2 + 2j + 25 (mod 512)
-
-the following command was run:
-
-```bash
-//wsl.localhost/Ubuntu/home/amymu/DistributedLoadBalancer/.venv/Scripts/python.exe scripts/sweep_async_load.py
-```
-
-Observed results:
-
-| N   | Successful | Failed | Avg Load / Server | Throughput (req/s) |
-| --- | ---------: | -----: | ----------------: | -----------------: |
-| 2   |      10000 |      0 |           5000.00 |             247.71 |
-| 3   |       5435 |   4565 |           1811.67 |             190.59 |
-| 4   |          5 |   9995 |              1.25 |               0.43 |
-| 5   |       4593 |   5407 |            918.60 |             171.93 |
-| 6   |      10000 |      0 |           1666.67 |             212.57 |
-
-Line chart (quadratic formula average load per server):
-
-```mermaid
-xychart-beta
-  title "Average Successful Load per Server with Quadratic Hashing"
-  x-axis "N" [2, 3, 4, 5, 6]
-  y-axis "Avg load/server" 0 --> 5200
-  line [5000, 1811.67, 1.25, 918.6, 1666.67]
-```
-
-Comparison with previous N=2..6 run:
-
-| N   | Previous Avg Load / Server | Quadratic Avg Load / Server |
-| --- | -------------------------: | --------------------------: |
-| 2   |                    5000.00 |                     5000.00 |
-| 3   |                    1807.00 |                     1811.67 |
-| 4   |                    2500.00 |                        1.25 |
-| 5   |                    1155.20 |                      918.60 |
-| 6   |                    1645.67 |                     1666.67 |
-
-Scalability observation for quadratic hashing:
-
-- Reliability is inconsistent across replica counts, with severe collapse at N=4 and partial failures at N=3 and N=5.
-- Throughput is high at N=2 and N=6, but not stable across intermediate N values.
-- The implementation scales in some configurations, but does not yet provide robust, monotonic scaling behavior under this quadratic mapping.
 
 ## Troubleshooting
 
