@@ -143,13 +143,13 @@ def select_backend_server(request_id_raw):
     try:
         request_id = int(request_id_raw) if request_id_raw is not None else random.randint(1, 1_000_000)
     except ValueError:
-        return None, "request_id must be an integer"
+        return None, "request_id must be an integer", 400
 
     server_id = hash_ring.get_server(request_id)
     hostname = servers.get(server_id)
     if hostname is None:
-        return None, "Server mapping is inconsistent"
-    return hostname, None
+        return None, "Server mapping is inconsistent", 500
+    return hostname, None, None
 
 
 def proxy_to_server(hostname, path):
@@ -211,36 +211,30 @@ def get_replicas():
     }), 200
 
 
-@app.route("/home", methods=["GET"])
-def route_request():
+def _route_to_backend(subpath):
     if not servers:
         return jsonify({"message": "No backend servers available", "status": "failure"}), 503
 
-    hostname, err = select_backend_server(request.args.get("request_id"))
+    hostname, err, err_status = select_backend_server(request.args.get("request_id"))
     if err is not None:
-        return jsonify({"message": err, "status": "failure"}), 400 if "request_id" in err else 500
-
-    proxied = proxy_to_server(hostname, "home")
-    if isinstance(proxied, tuple) and len(proxied) == 3:
-        body, status_code, content_type = proxied
-        return app.response_class(body, status=status_code, mimetype=content_type)
-    return proxied
-
-
-@app.route("/<path:subpath>", methods=["GET"])
-def route_any_path(subpath):
-    if not servers:
-        return jsonify({"message": "No backend servers available", "status": "failure"}), 503
-
-    hostname, err = select_backend_server(request.args.get("request_id"))
-    if err is not None:
-        return jsonify({"message": err, "status": "failure"}), 400 if "request_id" in err else 500
+        return jsonify({"message": err, "status": "failure"}), err_status
 
     proxied = proxy_to_server(hostname, subpath)
     if isinstance(proxied, tuple) and len(proxied) == 3:
         body, status_code, content_type = proxied
         return app.response_class(body, status=status_code, mimetype=content_type)
     return proxied
+
+
+@app.route("/home", methods=["GET"])
+def route_request():
+    return _route_to_backend("home")
+
+
+@app.route("/<path:subpath>", methods=["GET"])
+def route_any_path(subpath):
+    return _route_to_backend(subpath)
+
 
 @app.route("/add", methods=["POST"])
 def add_servers():
