@@ -28,6 +28,8 @@ SERVER_PORT = int(os.getenv("SERVER_PORT", "5000"))
 DOCKER_NETWORK = os.getenv("DOCKER_NETWORK", "distributedloadbalancer_default")
 BACKEND_STARTUP_TIMEOUT_SECONDS = int(os.getenv("BACKEND_STARTUP_TIMEOUT_SECONDS", "15"))
 server_lock = threading.Lock()
+replacement_lock = threading.Lock()
+replacement_in_progress = set()
 
 
 def wait_for_backend(hostname, timeout_seconds=BACKEND_STARTUP_TIMEOUT_SECONDS):
@@ -106,6 +108,28 @@ def replace_failed_server(server_id, failed_hostname):
         return new_hostname
 
 
+def schedule_failed_server_replacement(server_id, failed_hostname):
+    if not AUTO_CREATE_CONTAINERS or docker_client is None:
+        return
+
+    with replacement_lock:
+        if server_id in replacement_in_progress:
+            return
+        replacement_in_progress.add(server_id)
+
+    def _worker():
+        try:
+            replace_failed_server(server_id, failed_hostname)
+        except Exception:
+            pass
+        finally:
+            with replacement_lock:
+                replacement_in_progress.discard(server_id)
+
+    thread = threading.Thread(target=_worker, daemon=True)
+    thread.start()
+
+
 def get_server_id_by_hostname(hostname):
     for server_id, current_hostname in servers.items():
         if current_hostname == hostname:
@@ -166,23 +190,8 @@ def proxy_to_server(hostname, path):
         return exc.read().decode("utf-8"), exc.code, "application/json"
     except Exception as exc:
         failed_server_id = get_server_id_by_hostname(hostname)
-        replacement_hostname = None
         if failed_server_id is not None:
-            try:
-                replacement_hostname = replace_failed_server(failed_server_id, hostname)
-            except Exception:
-                replacement_hostname = None
-
-        if replacement_hostname is not None and replacement_hostname != hostname:
-            try:
-                retry_url = f"http://{replacement_hostname}:{SERVER_PORT}/{clean_path}"
-                if query:
-                    retry_url = f"{retry_url}?{query}"
-                with url_request.urlopen(retry_url, timeout=3) as response:
-                    body = response.read().decode("utf-8")
-                    return body, response.getcode(), response.headers.get_content_type()
-            except Exception:
-                pass
+            schedule_failed_server_replacement(failed_server_id, hostname)
 
         return jsonify({
             "message": f"Could not reach backend '{hostname}' at {target_url}: {exc}",
