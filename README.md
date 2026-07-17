@@ -302,7 +302,7 @@ From successful responses only:
 Bar chart (successful handled requests):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#1d4ed8', 'primaryBorderColor': '#1e3a8a', 'primaryTextColor': '#111111', 'lineColor': '#1e3a8a', 'textColor': '#111111', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#0b3a82', 'primaryBorderColor': '#07265c', 'primaryTextColor': '#111111', 'lineColor': '#07265c', 'textColor': '#111111', 'plotColorPalette': '#0b3a82,#7a2e0b,#0b3a82,#7a2e0b', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (SHA-256, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
@@ -359,7 +359,7 @@ Request count by server instance:
 Bar chart (quadratic formulas):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#0f766e', 'primaryBorderColor': '#115e59', 'primaryTextColor': '#111111', 'lineColor': '#115e59', 'textColor': '#111111', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#0b3a82', 'primaryBorderColor': '#07265c', 'primaryTextColor': '#111111', 'lineColor': '#07265c', 'textColor': '#111111', 'plotColorPalette': '#7a2e0b,#0b3a82,#7a2e0b,#0b3a82', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (Quadratic, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
@@ -400,7 +400,7 @@ Using SHA-256 hashing and isolated runs (fresh stack per N), the benchmark was r
 ### Line Chart (Rerun Average Load Per Server)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#7c3aed', 'primaryBorderColor': '#5b21b6', 'primaryTextColor': '#111111', 'lineColor': '#5b21b6', 'textColor': '#111111', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#0b3a82', 'primaryBorderColor': '#07265c', 'primaryTextColor': '#111111', 'lineColor': '#07265c', 'textColor': '#111111', 'plotColorPalette': '#0b3a82,#7a2e0b,#0b3a82,#7a2e0b', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Average Successful Load per Server (10,000 requests per run)"
   x-axis "N" [2, 3, 4, 5, 6]
@@ -443,7 +443,7 @@ Observed results:
 Line chart (quadratic formula average load per server):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#1d4ed8', 'primaryBorderColor': '#1e3a8a', 'primaryTextColor': '#111111', 'lineColor': '#1e3a8a', 'textColor': '#111111', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#7a2e0b', 'primaryBorderColor': '#4a1b05', 'primaryTextColor': '#111111', 'lineColor': '#4a1b05', 'textColor': '#111111', 'plotColorPalette': '#7a2e0b,#0b3a82,#7a2e0b,#0b3a82', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Average Successful Load per Server with Quadratic Hashing"
   x-axis "N" [2, 3, 4, 5, 6]
