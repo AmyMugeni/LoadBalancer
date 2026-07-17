@@ -443,7 +443,7 @@ Observed results:
 Line chart (quadratic formula average load per server):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ea580c', 'primaryBorderColor': '#9a3412', 'primaryTextColor': '#111111', 'lineColor': '#9a3412', 'textColor': '#111111', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#1d4ed8', 'primaryBorderColor': '#1e3a8a', 'primaryTextColor': '#111111', 'lineColor': '#1e3a8a', 'textColor': '#111111', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Average Successful Load per Server with Quadratic Hashing"
   x-axis "N" [2, 3, 4, 5, 6]
