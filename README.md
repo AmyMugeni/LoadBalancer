@@ -359,7 +359,7 @@ Request count by server instance:
 Bar chart (quadratic formulas):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#FFFFFF', 'primaryColor': '#163a8a', 'primaryBorderColor': '#0f2d6e', 'primaryTextColor': '#111111', 'lineColor': '#163a8a', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#FFFFFF', 'primaryColor': '#000000', 'primaryBorderColor': '#000000', 'primaryTextColor': '#111111', 'lineColor': '#163a8a', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (Quadratic, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
