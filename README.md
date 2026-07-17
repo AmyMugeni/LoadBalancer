@@ -302,7 +302,7 @@ From successful responses only:
 Bar chart (successful handled requests):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#ff6a00', 'primaryBorderColor': '#ff6a00', 'primaryTextColor': '#111111', 'lineColor': '#0057d9', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#4000ff', 'primaryBorderColor': '#2200ff', 'primaryTextColor': '#111111', 'lineColor': '#0057d9', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (SHA-256, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
@@ -359,7 +359,7 @@ Request count by server instance:
 Bar chart (quadratic formulas):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#d7263d', 'primaryBorderColor': '#d7263d', 'primaryTextColor': '#111111', 'lineColor': '#7f1d1d', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#e3122e', 'primaryBorderColor': '#e61430', 'primaryTextColor': '#111111', 'lineColor': '#7f1d1d', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Request Count by Server (Quadratic, N=3)"
   x-axis "Server" ["Server 1", "Server 2", "Server 3"]
@@ -443,7 +443,7 @@ Observed results:
 Line chart (quadratic formula average load per server):
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#c1121f', 'primaryBorderColor': '#c1121f', 'primaryTextColor': '#111111', 'lineColor': '#c1121f', 'fontSize': '16px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'background': '#ffffff', 'primaryColor': '#e20d1b', 'primaryBorderColor': '#c1121f', 'primaryTextColor': '#111111', 'lineColor': '#de0e1c', 'fontSize': '16px' }}}%%
 xychart-beta
   title "Average Successful Load per Server with Quadratic Hashing"
   x-axis "N" [2, 3, 4, 5, 6]
